@@ -2,20 +2,10 @@ from collections import defaultdict
 
 from tree_sitter_languages import get_parser, get_language
 
-def walk_all(parser, code):
-    tree = parser.parse(code.encode())
-    cursor = tree.walk()
-    visited_children = False
-
-    while True:
-        if not visited_children:
-            yield cursor.node
-            if not cursor.goto_first_child():
-                visited_children = True
-        elif cursor.goto_next_sibling():
-            visited_children = False
-        elif not cursor.goto_parent():
-            break
+def walk_all_children(node):
+    for child in node.children:
+        yield from walk_all_children(child)
+        yield child
 
 def walk_top_level(tree):
     cursor = tree.walk()
@@ -34,7 +24,7 @@ def dbg(node, indent_level=0):
 
 def import_insert_at(node):
     last_import = None
-    for node2 in walk_all(node):
+    for node2 in walk_all_children(node):
         if node2.type == "identifier":
             last_import = node2
 
@@ -83,31 +73,25 @@ def imports_serialize(tree):
 
     return imports_from, imports
 
-def parse(parser, code):
-    new_code = code
-    imports = defaultdict(list)
-    offset = 0
-    for node in walk_top_level(parser, code):
-        dbg(node)
-        if node.type == "import_from_statement":
-            continue
-            print(import_from_statement_serialize(node))
-            import_at = import_insert_at(node)
-            addition = ", foo"
-            new_code = new_code[:import_at.end_byte + offset] + addition + new_code[import_at.end_byte + offset:]
-            offset += len(addition)
-        elif node.type == "import_statement":
-            print(import_statement_serialize(node))
-            import_at = import_insert_at(node)
-            addition = ", foo"
-            new_code = new_code[:import_at.end_byte + offset] + addition + new_code[import_at.end_byte + offset:]
-            offset += len(addition)
+def get_missing_imports(source_imports_from, destination_imports_from, source_imports, destination_imports):
+    missing_from = defaultdict(set)
+    for module, items in source_imports_from.items():
+        if module not in destination_imports_from:
+            missing_from[module] = items
+        else:
+            missing_items = items - destination_imports_from[module]
+            if missing_items:
+                missing_from[module] = missing_items
 
-    from pprint import pprint
-    pprint(dict(imports))
-    print(new_code)
+    missing = source_imports - destination_imports
+    return missing_from, missing
 
-def combine(source_or_sources_code, destination_code):
+def insert_after(code, node, addition, offset):
+    return code[:node.end_byte + offset] + addition + code[node.end_byte + offset:], offset + len(addition)
+
+def combine_imports(source_or_sources_code, destination_code):
+    result_code = destination_code
+
     if type(source_or_sources_code) is str:
         source_or_sources_code = [source_or_sources_code]
 
@@ -121,23 +105,36 @@ def combine(source_or_sources_code, destination_code):
             source_imports_from[module] |= module_imports
         source_imports |= imports
 
-    print(dict(source_imports_from), source_imports)
+    tree = parser.parse(destination_code.encode())
+    destination_imports_from, destination_imports = imports_serialize(tree)
 
-combine(
-    """
-from a import (b, c as d)
-from e import f as g, h
-import zop.bop, zip.zop, b.a as pof, asdoij
-""".strip(), """
-from x import zoop
+    missing_imports_from, missing_imports = get_missing_imports(source_imports_from, destination_imports_from,
+                                                                source_imports, destination_imports)
 
-def zoop():
-    pass
-""".strip())
-"""
-import d
-import e.f
+    prev_import, last_import = None, None
+    offset = 0
+    for node in walk_top_level(tree):
+        if node.type == "import_from_statement":
+            prev_import = node
+            module, module_imports = import_from_statement_serialize(node)
+            if module in missing_imports_from:
+                import_at = import_insert_at(node)
+                addition = ", " + ", ".join(missing_imports_from[module])
+                result_code, offset = insert_after(result_code, import_at, addition, offset)
 
-def bar():
-    pass
-"""
+        elif node.type == "import_statement":
+            prev_import = node
+            imports = import_statement_serialize(node)
+        elif node.type in ["comment", "expression_statement"]:
+            pass
+        else:
+            if prev_import and last_import is None:
+                last_import = prev_import
+
+    if last_import is None:
+        last_import = prev_import
+
+    result_code, offset = insert_after(result_code, last_import,
+                                       "\n" + "\n".join("import " + x for x in missing_imports), offset)
+
+    return result_code

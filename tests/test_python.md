@@ -6,6 +6,7 @@ Source:
 
 ```python
 from datetime import datetime, timedelta
+from collections import defaultdict
 import json
 import os.path as osp
 ```
@@ -22,6 +23,7 @@ Expected Result:
 ```python
 from datetime import datetime, timedelta
 import json
+from collections import defaultdict
 import os.path as osp
 ```
 
@@ -46,8 +48,7 @@ from os.path import join, exists
 Expected Result:
 
 ```python
-from os.path import join, exists, dirname, basename, isfile
-from os.path import split as path_split
+from os.path import join, exists, dirname, basename, isfile, split as path_split
 ```
 
 # Multiple Source Files
@@ -105,7 +106,7 @@ import numpy as np
 Expected Result:
 
 ```python
-from pandas import DataFrame as data_frame, Series as s
+from pandas import DataFrame as data_frame, DataFrame as df, Series as s
 import numpy as np
 from matplotlib import pyplot as plt
 ```

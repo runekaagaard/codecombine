@@ -2,6 +2,8 @@ from collections import defaultdict
 
 from tree_sitter_languages import get_parser, get_language
 
+from ordered_set import OrderedSet as oset
+
 def walk_all_children(node):
     for child in node.children:
         yield from walk_all_children(child)
@@ -36,7 +38,7 @@ def import_from_statement_serialize(node):
         raise ValueError("Node must be import_from_statement")
 
     module = next(n for n in node.named_children if n.type == "dotted_name").text.decode()
-    imports = set()
+    imports = oset()
     for child in node.named_children:
         if child.type == "dotted_name" and child.text.decode() != module:
             imports.add(child.text.decode())
@@ -51,7 +53,7 @@ def import_statement_serialize(node):
     if node.type != "import_statement":
         raise ValueError("Node must be import_statement")
 
-    imports = set()
+    imports = oset()
     for child in node.named_children:
         if child.type == "dotted_name":
             imports.add(child.text.decode())
@@ -63,7 +65,7 @@ def import_statement_serialize(node):
     return imports
 
 def imports_serialize(tree):
-    imports_from, imports = defaultdict(set), set()
+    imports_from, imports = defaultdict(set), oset()
     for node in walk_top_level(tree):
         if node.type == "import_from_statement":
             module, module_imports = import_from_statement_serialize(node)
@@ -96,7 +98,7 @@ def combine_imports(source_or_sources_code, destination_code):
         source_or_sources_code = [source_or_sources_code]
 
     parser = get_parser('python')
-    source_imports_from, source_imports = defaultdict(set), set()
+    source_imports_from, source_imports = defaultdict(set), oset()
 
     for source_code in source_or_sources_code:
         tree = parser.parse(source_code.encode())
@@ -121,6 +123,7 @@ def combine_imports(source_or_sources_code, destination_code):
                 import_at = import_insert_at(node)
                 addition = ", " + ", ".join(missing_imports_from[module])
                 result_code, offset = insert_after(result_code, import_at, addition, offset)
+                del missing_imports_from[module]
 
         elif node.type == "import_statement":
             prev_import = node
@@ -134,7 +137,12 @@ def combine_imports(source_or_sources_code, destination_code):
     if last_import is None:
         last_import = prev_import
 
-    result_code, offset = insert_after(result_code, last_import,
-                                       "\n" + "\n".join("import " + x for x in missing_imports), offset)
+    missing_imports_code = []
+    if missing_imports_from:
+        missing_imports_code.extend([f"from {k} import {', '.join(v)}" for k, v in missing_imports_from.items()])
+    if missing_imports:
+        missing_imports_code.extend([f"import {x}" for x in missing_imports])
+
+    result_code, offset = insert_after(result_code, last_import, "\n" + "\n".join(missing_imports_code), offset)
 
     return result_code

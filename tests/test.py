@@ -4,19 +4,26 @@ import difflib
 from tree_sitter_languages import get_parser
 from codecombine import combine_imports, walk_top_level
 
-def run_test(title, source_codes, destination_code, expected_code, combine_imports):
+def h1(title):
+    print(f"{title}\n{'='*len(title)}")
+
+def run_test(title, source_codes, destination_code, expected_code):
     """Run a single test and report results."""
     try:
-        actual_code = combine_imports(source_codes, destination_code)
-        actual_code = actual_code.strip()
+        actual_code = combine_imports(source_codes, destination_code).strip()
         expected_code = expected_code.strip()
 
         if actual_code != expected_code:
             print(f"\n❌ Test failed: {title}")
+            h1("Expected: ")
+            print(expected_code)
+            h1("Actual:")
+            print(actual_code)
+            h1("Diff:")
             diff = list(
-                difflib.unified_diff(expected_code.splitlines(keepends=True),
-                                     actual_code.splitlines(keepends=True), fromfile='expected', tofile='actual'))
-            print(''.join(diff))
+                difflib.unified_diff(expected_code.splitlines(), actual_code.splitlines(), fromfile='expected',
+                                     tofile='actual'))
+            print('\n'.join(x.strip() for x in diff))
             return False
         else:
             print(f"✅ Test passed: {title}")
@@ -31,7 +38,7 @@ def extract_title(heading_node, content):
     """Extract the title from a heading node."""
     for child in heading_node.children:
         if child.type == "heading_content":
-            return content[child.start_byte:child.end_byte].decode()
+            return content[child.start_byte:child.end_byte].decode().strip()
     return "Untitled Test"
 
 def main():
@@ -94,8 +101,10 @@ def main():
             if len(source_codes) == 1:
                 source_codes = source_codes[0]
 
-            if run_test(title, source_codes, destination_code, expected_code, combine_imports):
+            if run_test(title, source_codes, destination_code, expected_code):
                 passed_tests += 1
+            else:
+                raise Exception("Early kill")
 
     # Print summary
     print("\nTest Summary")

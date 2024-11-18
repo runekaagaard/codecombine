@@ -15,11 +15,16 @@ def run_test(title, source_codes, destination_code, expected_code):
 
         if actual_code != expected_code:
             print(f"\n❌ Test failed: {title}")
-            h1("Expected: ")
-            print(expected_code)
-            h1("Actual:")
+            for source_code in [source_codes] if type(source_codes) is str else source_codes:
+                h1(f"\nSource:")
+                print(source_code)
+            h1("\nDestination:")
+            print(destination_code)
+            h1("\nActual:")
             print(actual_code)
-            h1("Diff:")
+            h1("\nExpected: ")
+            print(expected_code)
+            h1("\nDiff:")
             diff = list(
                 difflib.unified_diff(expected_code.splitlines(), actual_code.splitlines(), fromfile='expected',
                                      tofile='actual'))

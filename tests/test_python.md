@@ -172,13 +172,21 @@ Expected Result:
 
 ```python
 from typing import Optional
+import json
 if sys.version_info >= (3, 8):
     from typing import TypedDict
-else:
-    from typing_extensions import TypedDict
 import yaml
-import json
 ```
+
+NOTE: Maybe merge if sentences, when we get to symbol combining? If so the Expected Result would be:
+
+<!-- from typing import Optional -->
+<!-- if sys.version_info >= (3, 8): -->
+<!--     from typing import TypedDict -->
+<!-- else: -->
+<!--     from typing_extensions import TypedDict -->
+<!-- import yaml -->
+<!-- import json -->
 
 # Import Comments and Formatting
 
@@ -208,11 +216,18 @@ Expected Result:
 ```python
 # Network related imports
 from urllib.parse import urljoin, urlparse
-import requests  # HTTP client
-
-# Data processing
-import pandas as pd
+import requests
+import pandas as pd  # HTTP client
 ```
+
+NOTE: Maybe merge code between imports as well when we get to symbol combining? If so the Expected Result would be:
+
+<!-- # Network related imports -->
+<!-- from urllib.parse import urljoin, urlparse -->
+<!-- import requests  # HTTP client -->
+
+<!-- # Data processing -->
+<!-- import pandas as pd -->
 
 # Relative Imports
 

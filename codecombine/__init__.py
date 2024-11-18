@@ -89,7 +89,11 @@ def get_missing_imports(source_imports_from, destination_imports_from, source_im
     return missing_from, missing
 
 def insert_after(code, node, addition, offset):
-    return code[:node.end_byte + offset] + addition + code[node.end_byte + offset:], offset + len(addition)
+    if node is None:
+        addition += "\n\n"
+        return addition + code, offset + len(addition)
+    else:
+        return code[:node.end_byte + offset] + addition + code[node.end_byte + offset:], offset + len(addition)
 
 def combine_imports(source_or_sources_code, destination_code):
     result_code = destination_code

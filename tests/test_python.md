@@ -137,8 +137,8 @@ Expected Result:
 
 ```python
 from typing import Optional, List
-import sys
 from pathlib import Path
+import sys
 
 def process_data():
     pass

@@ -37,10 +37,21 @@ def import_from_statement_serialize(node):
     if node.type != "import_from_statement":
         raise ValueError("Node must be import_from_statement")
 
-    module = next(n for n in node.named_children if n.type == "dotted_name").text.decode()
+    module_node = next(n for n in node.named_children if n.type in ("dotted_name", "relative_import"))
+
+    if module_node.type == "relative_import":
+        module = ""
+        for child in module_node.children:
+            if child.type == "import_prefix":
+                module = child.text.decode()
+            elif child.type == "dotted_name":
+                module += child.text.decode()
+    else:
+        module = module_node.text.decode()
+
     imports = oset()
     for child in node.named_children:
-        if child.type == "dotted_name" and child.text.decode() != module:
+        if child.type == "dotted_name" and child != module_node:
             imports.add(child.text.decode())
         elif child.type == "aliased_import":
             name = child.child_by_field_name("name").text.decode()

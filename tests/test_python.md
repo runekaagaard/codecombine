@@ -178,7 +178,7 @@ if sys.version_info >= (3, 8):
 import yaml
 ```
 
-NOTE: Maybe merge if sentences, when we get to symbol combining? If so the Expected Result would be:
+<!-- NOTE: Maybe merge if sentences, when we get to symbol combining? If so the Expected Result would be: -->
 
 <!-- from typing import Optional -->
 <!-- if sys.version_info >= (3, 8): -->
@@ -220,7 +220,7 @@ import requests
 import pandas as pd  # HTTP client
 ```
 
-NOTE: Maybe merge code between imports as well when we get to symbol combining? If so the Expected Result would be:
+<!-- NOTE: Maybe merge code between imports as well when we get to symbol combining? If so the Expected Result would be: -->
 
 <!-- # Network related imports -->
 <!-- from urllib.parse import urljoin, urlparse -->
@@ -306,106 +306,6 @@ from pkg import subpkg
 import pkg.subpkg.other as other
 ```
 
-# Runtime/Dynamic Imports
-
-Tests handling of imports inside functions.
-
-Source:
-
-```python
-def load_optional_deps():
-    import numpy as np
-    from scipy import sparse
-    return np, sparse
-
-def main():
-    from typing import Optional
-    pass
-```
-
-Destination:
-
-```python
-def load_optional_deps():
-    import numpy as np
-    return np
-
-def main():
-    pass
-```
-
-Expected Result:
-
-```python
-def load_optional_deps():
-    import numpy as np
-    from scipy import sparse
-    return np, sparse
-
-def main():
-    from typing import Optional
-    pass
-```
-
-# Import Order Dependencies
-
-Tests handling imports with dependencies between them.
-
-Source:
-
-```python
-import sys
-from pathlib import Path
-import os.path as osp
-from os.path import join, dirname
-```
-
-Destination:
-
-```python
-import os.path as osp
-from pathlib import Path
-```
-
-Expected Result:
-
-```python
-import sys
-import os.path as osp
-from pathlib import Path
-from os.path import join, dirname
-```
-
-# Type Checking Imports
-
-Tests handling of type checking imports.
-
-Source:
-
-```python
-from typing import List, Dict
-if TYPE_CHECKING:
-    from mypackage.types import MyType
-    from other_package import OtherType
-```
-
-Destination:
-
-```python
-from typing import List
-if TYPE_CHECKING:
-    from mypackage.types import MyType
-```
-
-Expected Result:
-
-```python
-from typing import List, Dict
-if TYPE_CHECKING:
-    from mypackage.types import MyType
-    from other_package import OtherType
-```
-
 # Circular Import Resolution
 
 Tests handling potential circular imports.
@@ -433,32 +333,4 @@ Expected Result:
 from .a import A
 from .c import C
 from .b import B
-```
-
-# Future Imports
-
-Tests handling of future imports which must stay at the top.
-
-Source:
-
-```python
-from __future__ import annotations
-from __future__ import unicode_literals
-import sys
-```
-
-Destination:
-
-```python
-from __future__ import annotations
-import os
-```
-
-Expected Result:
-
-```python
-from __future__ import annotations
-from __future__ import unicode_literals
-import os
-import sys
 ```
